@@ -1,19 +1,20 @@
 version: 1
 frontend:
   appRoot: "frontend"
+  framework: "Next.js - SSR"
 
   phases:
     preBuild:
       commands:
-        - "echo 'Starting preBuild'; pwd; ls -la"
-        - "if [ -f package-lock.json ]; then npm ci; elif [ -f yarn.lock ]; then yarn install; else npm install; fi"
+        - "echo 'Installing dependencies...' && pwd && ls -la"
+        - "npm ci"
+        - "echo 'Dependencies installed successfully'"
     build:
       commands:
-        - "echo 'Starting build'; npm run build"
-        - "if npm run | grep -q ' export'; then echo 'Detected export script — running export'; npm run export; fi"
+        - "echo 'Building Next.js application...' && npm run build"
+        - "echo 'Build completed successfully'"
 
   artifacts:
-    # For SSR/ISR use .next. If you do a static export (next export) change to 'out'.
     baseDirectory: .next
     files:
       - "**/*"
@@ -21,3 +22,18 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
+      - .next/cache/**/*
+
+  env:
+    variables:
+      NODE_ENV: production
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: $NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      NEXT_PUBLIC_BACKEND_API: $NEXT_PUBLIC_BACKEND_API
+      NEXT_PUBLIC_S3_BUCKET: $NEXT_PUBLIC_S3_BUCKET
+      NEXT_PUBLIC_AWS_REGION: $NEXT_PUBLIC_AWS_REGION
+      NEXT_PUBLIC_FIREBASE_API_KEY: $NEXT_PUBLIC_FIREBASE_API_KEY
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: $NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: $NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: $NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: $NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+      NEXT_PUBLIC_FIREBASE_APP_ID: $NEXT_PUBLIC_FIREBASE_APP_ID
