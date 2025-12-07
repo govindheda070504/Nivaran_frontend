@@ -25,13 +25,13 @@ export const amplifyConfig = {
 };
 
 // Placeholder API functions
-export const submitRescueReport = async (data: any) => {
+export const submitRescueReport = async (data: Record<string, unknown>) => {
   // TODO: Implement AWS Lambda API call
   console.log('Submitting rescue report:', data);
   return { success: true, caseId: 'RC' + Date.now() };
 };
 
-export const fetchRescueCases = async (filters?: any) => {
+export const fetchRescueCases = async (filters?: Record<string, unknown>) => {
   // TODO: Implement AWS Lambda API call to fetch cases
   console.log('Fetching rescue cases with filters:', filters);
   return { cases: [] };

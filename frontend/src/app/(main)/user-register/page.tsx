@@ -7,7 +7,6 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   User,
@@ -68,9 +67,9 @@ export default function UserRegisterCleanPage() {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       setStatusMsg(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Sign-in error:", err);
-      setStatusMsg("Sign-in failed: " + (err?.message || err));
+      setStatusMsg("Sign-in failed: " + (err as Error)?.message || "Unknown error");
     }
   };
 
@@ -86,21 +85,9 @@ export default function UserRegisterCleanPage() {
       const auth = getAuth();
       await createUserWithEmailAndPassword(auth, email, password);
       setStatusMsg(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Signup error:", err);
-      setStatusMsg("Signup failed: " + (err?.message || err));
-    }
-  };
-
-  const handleEmailSignIn = async () => {
-    try {
-      setStatusMsg("Signing in...");
-      const auth = getAuth();
-      await signInWithEmailAndPassword(auth, email, password);
-      setStatusMsg(null);
-    } catch (err: any) {
-      console.error("Sign-in error:", err);
-      setStatusMsg("Sign-in failed: " + (err?.message || err));
+      setStatusMsg("Signup failed: " + (err as Error)?.message || "Unknown error");
     }
   };
 
@@ -159,15 +146,25 @@ export default function UserRegisterCleanPage() {
       // Store user role in localStorage for immediate navbar update
       try {
         localStorage.setItem("userRole", "user");
-      } catch (e) {}
+      } catch {}
       
       // Redirect to profile and reload to load new data
       setTimeout(() => {
         router.push("/profile");
       }, 500);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Register profile request failed:", err);
-      if (err.name === "AbortError") {
+
+      // Type-safe check without using `any`
+      const isAbortError =
+        err instanceof DOMException
+          ? err.name === "AbortError"
+          : typeof err === "object" &&
+            err !== null &&
+            "name" in err &&
+            (err as { name?: string }).name === "AbortError";
+
+      if (isAbortError) {
         setStatusMsg("Request timed out. Backend did not respond in time.");
       } else {
         setStatusMsg(
@@ -178,15 +175,7 @@ export default function UserRegisterCleanPage() {
       clearTimeout(timeout);
       setSubmitting(false);
     }
-  };
 
-  const showIdToken = async () => {
-    if (!user) {
-      setStatusMsg("Not signed in");
-      return;
-    }
-    const idToken = await user.getIdToken();
-    setStatusMsg("ID token (truncated): " + idToken.slice(0, 80) + "...");
   };
 
   if (!mounted) return <div />;
@@ -262,7 +251,7 @@ return (
 
                 <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 24 }}>
                   <button onClick={handleSignOut} style={btnSecondaryStyle}>Sign Out</button>
-                  <button onClick={showIdToken} style={btnOutlineStyle}>Show Token</button>
+                  {/* <button onClick={showIdToken} style={btnOutlineStyle}>Show Token</button> */}
                 </div>
               </div>
 

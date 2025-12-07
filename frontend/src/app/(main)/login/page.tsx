@@ -40,8 +40,8 @@ export default function LoginPage() {
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
-  const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -58,7 +58,6 @@ export default function LoginPage() {
       }
     });
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function determineRole(u: User): Promise<"ngo" | "user" | "unknown"> {
@@ -68,7 +67,7 @@ export default function LoginPage() {
       const claimRole = idTokenRes?.claims?.role;
       if (claimRole === "ngo") return "ngo";
       if (claimRole === "user") return "user";
-    } catch (e) {
+    } catch {
       // ignore and fallback
     }
 
@@ -86,7 +85,7 @@ export default function LoginPage() {
         // treat presence in users table as user
         if (prof.email) return "user";
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
 
@@ -99,12 +98,12 @@ export default function LoginPage() {
         if (ngosResp.ok) {
           const ngos = await ngosResp.json().catch(() => []);
           if (Array.isArray(ngos)) {
-            const match = ngos.find((n: any) => String(n.email || "").toLowerCase() === email.toLowerCase());
+            const match = ngos.find((n: Record<string, unknown>) => String((n as {email?: string}).email || "").toLowerCase() === email.toLowerCase());
             if (match) return "ngo";
           }
         }
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
 
@@ -129,17 +128,17 @@ export default function LoginPage() {
           if (ngosResp.ok) {
             const ngos = await ngosResp.json().catch(() => []);
             if (Array.isArray(ngos)) {
-              const match = ngos.find((n: any) => String(n.email || "").toLowerCase() === email.toLowerCase());
-              if (match && match.ngo_id) {
-                localStorage.setItem("ngo_id", String(match.ngo_id));
+              const match = ngos.find((n: Record<string, unknown>) => String((n as {email?: string}).email || "").toLowerCase() === email.toLowerCase());
+              if (match && (match as {ngo_id?: string | number}).ngo_id) {
+                localStorage.setItem("ngo_id", String((match as {ngo_id: string | number}).ngo_id));
               }
             }
           }
-        } catch (e) {
+        } catch {
           // ignore - storing email is enough if ngo_id lookup fails
         }
       }
-    } catch (e) {
+    } catch {
       // ignore storage errors (e.g. private mode)
     }
   }
@@ -154,9 +153,9 @@ export default function LoginPage() {
       }
       // if user or unknown, go to profile page (default)
       router.push("/profile");
-    } catch (e) {
+    } catch {
       // on error, store email only and fallback to profile
-      try { localStorage.setItem("email", u.email || ""); } catch (e) {}
+      try { localStorage.setItem("email", u.email || ""); } catch {}
       router.push("/profile");
     }
   }
@@ -171,9 +170,9 @@ export default function LoginPage() {
       if (credential && credential.user) {
         await determineAndRedirectAndStore(credential.user);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Sign-in error:", err);
-      setStatusMsg("Sign-in failed: " + (err?.message || err));
+      setStatusMsg("Sign-in failed: " + (err as Error)?.message || "Unknown error");
     } finally {
       setStatusMsg(null);
     }
@@ -187,9 +186,9 @@ export default function LoginPage() {
       if (cred && cred.user) {
         await determineAndRedirectAndStore(cred.user);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Sign-in error:", err);
-      setStatusMsg("Sign-in failed: " + (err?.message || err));
+      setStatusMsg("Sign-in failed: " + (err as Error)?.message || "Unknown error");
     } finally {
       setStatusMsg(null);
     }
@@ -202,7 +201,7 @@ export default function LoginPage() {
     try {
       localStorage.removeItem("email");
       localStorage.removeItem("ngo_id");
-    } catch (e) {
+    } catch {
       // ignore
     }
     setStatusMsg("Signed out");
@@ -353,7 +352,7 @@ export default function LoginPage() {
                 color: "#6b7280",
                 fontSize: 14
               }}>
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link href="/register" style={{ 
                   color: THEME.primary, 
                   fontWeight: 600, 

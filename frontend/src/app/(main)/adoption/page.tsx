@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Filter, Heart } from "lucide-react";
+import { Search, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,10 +25,6 @@ import { AdoptionCard, AdoptionAnimal } from "@/components/AdoptionCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 
-interface AdoptionPageProps {
-  onNavigate: (page: string) => void;
-}
-
 const THEME = {
   primary: "#19C2E6",
   accent: "#FED801",
@@ -38,7 +34,7 @@ const THEME = {
 
 const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_API || "http://127.0.0.1:3000";
 
-export default function AdoptionPage({ onNavigate }: AdoptionPageProps) {
+export default function AdoptionPage(): React.ReactNode {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterLocation, setFilterLocation] = useState("all");
@@ -72,16 +68,16 @@ export default function AdoptionPage({ onNavigate }: AdoptionPageProps) {
       
       for (let i = 0; i < data.length; i += batchSize) {
         const batch = data.slice(i, i + batchSize);
-        const batchPromises = batch.map(async (item: any) => {
+        const batchPromises = batch.map(async (item: Record<string, unknown>) => {
           let imageUrl = "";
           if (item.adoption_id) {
             try {
               const imgRes = await fetch(`${BACKEND_API}/adoptions/${item.adoption_id}/image-url`);
               if (imgRes.ok) {
-                const imgData = await imgRes.json();
-                imageUrl = imgData.url;
+                const imgData = await imgRes.json() as { url?: string };
+                imageUrl = imgData.url || "";
               }
-            } catch (e) {
+            } catch {
               console.warn("Failed to fetch image for", item.adoption_id);
             }
           }

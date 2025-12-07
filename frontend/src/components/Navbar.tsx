@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth, onAuthStateChanged, getIdTokenResult, signOut } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
 // Theme colors
 const THEME = {
@@ -37,7 +37,7 @@ export function Navbar() {
     if (!getApps().length) {
       try {
         initializeApp(FIREBASE_CONFIG);
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
@@ -51,7 +51,7 @@ export function Navbar() {
           // Clear role from localStorage when user logs out
           try {
             localStorage.removeItem("userRole");
-          } catch (e) {}
+          } catch {}
           return;
         }
 
@@ -63,7 +63,7 @@ export function Navbar() {
           if (cachedRole) {
             setRole(cachedRole);
           }
-        } catch (e) {}
+        } catch {}
 
         // Fetch role from backend (nivaran-user-table via get_profile)
         if (BACKEND_API) {
@@ -94,13 +94,13 @@ export function Navbar() {
               // Cache role in localStorage
               try {
                 localStorage.setItem("userRole", userRole);
-              } catch (e) {}
+              } catch {}
               return;
             } else {
               console.warn('Failed to fetch profile, status:', userResp.status);
             }
-          } catch (e) {
-            console.error('Error fetching profile:', e);
+          } catch (err) {
+            console.error('Error fetching profile:', err);
           }
         }
 
@@ -111,9 +111,9 @@ export function Navbar() {
         }
       });
       return () => unsub();
-    } catch (e) {
+    } catch (err) {
       // firebase not configured
-      console.error('Firebase error:', e);
+      console.error('Firebase error:', err);
       setLoggedIn(false);
       setRole(null);
     }
@@ -177,7 +177,7 @@ export function Navbar() {
     try {
       const auth = getAuth();
       await signOut(auth);
-    } catch (e) {
+    } catch {
       // ignore
     } finally {
       // clear only our identity keys
@@ -185,7 +185,7 @@ export function Navbar() {
         localStorage.removeItem("email");
         localStorage.removeItem("ngo_id");
         localStorage.removeItem("userRole");
-      } catch (e) {}
+      } catch {}
       setLoggedIn(false);
       setRole(null);
       router.push('/login');

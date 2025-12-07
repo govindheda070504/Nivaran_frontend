@@ -7,7 +7,6 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   User,
@@ -75,7 +74,7 @@ export default function NgoRegisterPage() {
   }, []);
 
   // debounce helper for place autocomplete
-  let placeTimer: any = null;
+  let placeTimer: NodeJS.Timeout | null = null;
   const onPlaceInputChange = (val: string) => {
     setPlaceInput(val);
     setSelectedLat(null);
@@ -89,14 +88,14 @@ export default function NgoRegisterPage() {
     placeTimer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/location-autocomplete?input=${encodeURIComponent(val)}`);
-        const data = await res.json();
-        if (data.predictions) {
-          const suggestions = data.predictions.map((p: any) => p.description);
+        const data = await res.json() as Record<string, unknown>;
+        if (data.predictions && Array.isArray(data.predictions)) {
+          const suggestions = (data.predictions as Record<string, unknown>[]).map((p: Record<string, unknown>) => (p as {description: string}).description) as string[];
           setPlaceSuggestions(suggestions);
           setShowPlaceSuggestions(true);
         }
-      } catch (e) {
-        console.error('place autocomplete error', e);
+      } catch {
+        console.error('place autocomplete error');
       }
     }, 400);
   };
@@ -120,8 +119,8 @@ export default function NgoRegisterPage() {
         setSelectedLat(loc.lat);
         setSelectedLng(loc.lng);
       }
-    } catch (e) {
-      console.error('geocode error', e);
+    } catch {
+      console.error('geocode error');
     }
   };
 
@@ -132,9 +131,9 @@ export default function NgoRegisterPage() {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       setStatusMsg(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Sign-in error:", err);
-      setStatusMsg("Sign-in failed: " + (err?.message || err));
+      setStatusMsg("Sign-in failed: " + (err as Error)?.message || "Unknown error");
     }
   };
 
@@ -150,21 +149,9 @@ export default function NgoRegisterPage() {
       const auth = getAuth();
       await createUserWithEmailAndPassword(auth, email, password);
       setStatusMsg(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Signup error:", err);
-      setStatusMsg("Signup failed: " + (err?.message || err));
-    }
-  };
-
-  const handleEmailSignIn = async () => {
-    try {
-      setStatusMsg("Signing in...");
-      const auth = getAuth();
-      await signInWithEmailAndPassword(auth, email, password);
-      setStatusMsg(null);
-    } catch (err: any) {
-      console.error("Sign-in error:", err);
-      setStatusMsg("Sign-in failed: " + (err?.message || err));
+      setStatusMsg("Signup failed: " + (err as Error)?.message || "Unknown error");
     }
   };
 
@@ -183,7 +170,7 @@ export default function NgoRegisterPage() {
     const timeout = setTimeout(() => controller.abort(), 15000);
 
     try {
-      const body = {
+      const body: Record<string, unknown> = {
         name,
         address,
         phone,
@@ -191,7 +178,7 @@ export default function NgoRegisterPage() {
         service_radius_km: parseFloat(serviceRadius),
         website,
         email: effectiveEmail,
-      } as any;
+      };
 
       // attach lat/lng only if the user selected a place from autocomplete
       if (selectedLat !== null && selectedLng !== null) {
@@ -226,16 +213,16 @@ export default function NgoRegisterPage() {
       // Store NGO role in localStorage for immediate navbar update
       try {
         localStorage.setItem("userRole", "ngo");
-      } catch (e) {}
+      } catch {}
       
       // Redirect to dashboard and reload to load new data
       setTimeout(() => {
         router.push("/dashboard");
 
       }, 500);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Register NGO request failed:", err);
-      if (err.name === "AbortError") {
+      if ((err as Error)?.name === "AbortError") {
         setStatusMsg("Request timed out. Backend did not respond in time.");
       } else {
         setStatusMsg(
@@ -246,15 +233,6 @@ export default function NgoRegisterPage() {
       clearTimeout(timeout);
       setSubmitting(false);
     }
-  };
-
-  const showIdToken = async () => {
-    if (!user) {
-      setStatusMsg("Not signed in");
-      return;
-    }
-    const idToken = await user.getIdToken();
-    setStatusMsg("ID token (truncated): " + idToken.slice(0, 80) + "...");
   };
 
   if (!mounted) return <div />;
@@ -565,20 +543,6 @@ const btnSecondaryStyle: React.CSSProperties = {
   transition: "all 0.2s ease",
   fontFamily: "inherit"
 };
-
-const btnOutlineStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  borderRadius: 10,
-  border: "2px solid #e5e7eb",
-  background: "transparent",
-  color: "#374151",
-  cursor: "pointer",
-  fontSize: 14,
-  fontWeight: 600,
-  transition: "all 0.2s ease",
-  fontFamily: "inherit"
-};
-
 const toggleBtnStyle: React.CSSProperties = {
   position: "absolute",
   right: 8,

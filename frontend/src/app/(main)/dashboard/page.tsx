@@ -1,7 +1,7 @@
 
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Filter, Map, List, Search, RefreshCw } from "lucide-react";
+import { Map, List, Search, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,7 +47,7 @@ function s3UrlForKey(key: string | null) {
   return `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${encodeURIComponent(key)}`;
 }
 
-export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string) => void }) {
+export default function DashboardPage({}): React.ReactNode {
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [caseType, setCaseType] = useState<"all" | "ongoing" | "completed" | "adopted">("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -55,14 +55,14 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
   const [searchQuery, setSearchQuery] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [cases, setCases] = useState<any[]>([]);
+  const [cases, setCases] = useState<Record<string, unknown>[]>([]);
   const [ngoEmail, setNgoEmail] = useState<string | null>(null);
   const [editingNgoEmail, setEditingNgoEmail] = useState<string>("");
   const [ngoCoords, setNgoCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   // Adoption modal state
   const [showAdoptionModal, setShowAdoptionModal] = useState(false);
-  const [selectedCaseForAdoption, setSelectedCaseForAdoption] = useState<any>(null);
+  const [selectedCaseForAdoption, setSelectedCaseForAdoption] = useState<Record<string, unknown> | null>(null);
   const [adoptionForm, setAdoptionForm] = useState({
     name: "",
     animal_type: "",
@@ -105,8 +105,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       const body = await res.json().catch(() => null);
       if (body && body.url) return body.url as string;
       return undefined;
-    } catch (err) {
-      console.warn("Presign request error", err);
+    } catch {
+      console.warn("Presign request error");
       return undefined;
     }
   }, []);
@@ -122,8 +122,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       const body = await res.json().catch(() => null);
       if (body && body.url) return body.url as string;
       return undefined;
-    } catch (err) {
-      console.warn("Presign request error for s3_key", err);
+    } catch {
+      console.warn("Presign request error for s3_key");
       return undefined;
     }
   }, []);
@@ -138,7 +138,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
         setCases([]);
         return;
       }
-      let data = await res.json();
+      const data = await res.json() as unknown[];
       if (!Array.isArray(data)) {
         toast.error("Unexpected response shape from backend");
         setCases([]);
@@ -147,12 +147,12 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
 
       // Attach presigned URLs in batches
       const batchSize = 6;
-      const enriched: any[] = [];
+      const enriched: Record<string, unknown>[] = [];
       for (let i = 0; i < data.length; i += batchSize) {
-        const batch = data.slice(i, i + batchSize);
-        const batchPromises = batch.map(async (c: any) => {
+        const batch = data.slice(i, i + batchSize) as Record<string, unknown>[];
+        const batchPromises = batch.map(async (c: Record<string, unknown>) => {
           if (c.case_id) {
-            const presigned = await fetchPresignedForCase(c.case_id);
+            const presigned = await fetchPresignedForCase(String(c.case_id));
             if (presigned) c.image_presigned_url = presigned;
           }
           return c;
@@ -162,8 +162,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       }
 
       setCases(enriched);
-    } catch (err: any) {
-      console.error("Fetch nearby cases error", err);
+    } catch {
+      console.error("Fetch nearby cases error");
       toast.error("Network error while loading nearby cases");
       setCases([]);
     } finally {
@@ -181,7 +181,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
         setCases([]);
         return;
       }
-      let data = await res.json();
+      const data = await res.json() as unknown[];
       if (!Array.isArray(data)) {
         toast.error("Unexpected response shape from backend");
         setCases([]);
@@ -189,18 +189,18 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       }
 
       // Extract case data from case_payload
-      const enriched: any[] = [];
+      const enriched: Record<string, unknown>[] = [];
       
       // Process in batches to fetch presigned URLs
       const batchSize = 6;
       for (let i = 0; i < data.length; i += batchSize) {
-        const batch = data.slice(i, i + batchSize);
-        const batchPromises = batch.map(async (item: any) => {
-          let caseData = item.case_payload;
-          if (typeof caseData === 'string') {
+        const batch = data.slice(i, i + batchSize) as Record<string, unknown>[];
+        const batchPromises = batch.map(async (item: Record<string, unknown>) => {
+          let caseData: Record<string, unknown> = item.case_payload as Record<string, unknown>;
+          if (typeof item.case_payload === 'string') {
             try {
-              caseData = JSON.parse(caseData);
-            } catch (e) {
+              caseData = JSON.parse(item.case_payload) as Record<string, unknown>;
+            } catch {
               caseData = {};
             }
           }
@@ -212,14 +212,14 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
           // Fetch presigned URL using s3_key parameter
           let imageUrl = undefined;
           if (s3Key) {
-            const presigned = await fetchPresignedForS3Key(s3Key);
+            const presigned = await fetchPresignedForS3Key(String(s3Key));
             if (presigned) {
               imageUrl = presigned;
             }
           }
           
           return {
-            ...caseData,
+            ...(caseData as Record<string, unknown>),
             case_id: caseId,
             ngo_id: item.ngo_id,
             taken_at: item.taken_at,
@@ -237,8 +237,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       }
 
       setCases(enriched);
-    } catch (err: any) {
-      console.error("Fetch ongoing cases error", err);
+    } catch {
+      console.error("Fetch ongoing cases error");
       toast.error("Network error while loading ongoing cases");
       setCases([]);
     } finally {
@@ -254,20 +254,21 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
         console.warn("Failed to fetch adoptions", res.status);
         return;
       }
-      const adoptions = await res.json();
+      const adoptions = await res.json() as unknown[];
       if (!Array.isArray(adoptions)) return;
       
       console.log("[Dashboard] Fetched adoptions:", adoptions.length);
       
       // Filter adoptions by NGO email (include both available and adopted)
-      const ngoAdoptions = adoptions.filter((a: any) => 
+      const ngoAdoptions = (adoptions as Record<string, unknown>[]).filter((a: Record<string, unknown>) => 
         a.ngo_email && 
-        a.ngo_email.toLowerCase() === email.toLowerCase()
+        String(a.ngo_email).toLowerCase() === email.toLowerCase()
       );
       
       console.log("[Dashboard] NGO adoptions (all):", ngoAdoptions.length);
-      ngoAdoptions.forEach((a: any) => {
-        console.log(`  - Adoption ${a.adoption_id}, case_id: ${a.case_id}, status: ${a.adoption_status}`);
+      (ngoAdoptions as Record<string, unknown>[]).forEach((a: Record<string, unknown>) => {
+        const aObj = a as { adoption_id?: string; case_id?: string; adoption_status?: string };
+        console.log(`  - Adoption ${aObj.adoption_id}, case_id: ${aObj.case_id}, status: ${aObj.adoption_status}`);
       });
       
       // Fetch images for adoptions in batches
@@ -275,33 +276,34 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       const enrichedAdoptions: Record<string, AdoptionAnimal> = {};
       
       for (let i = 0; i < ngoAdoptions.length; i += batchSize) {
-        const batch = ngoAdoptions.slice(i, i + batchSize);
-        const batchPromises = batch.map(async (adoption: any) => {
+        const batch = ngoAdoptions.slice(i, i + batchSize) as Record<string, unknown>[];
+        const batchPromises = batch.map(async (adoption: Record<string, unknown>) => {
+          const adoptionObj = adoption as { adoption_id?: string };
           let imageUrl = "";
-          if (adoption.adoption_id) {
+          if (adoptionObj.adoption_id) {
             try {
-              const imgRes = await fetch(`${BACKEND_API}/adoptions/${adoption.adoption_id}/image-url`);
+              const imgRes = await fetch(`${BACKEND_API}/adoptions/${adoptionObj.adoption_id}/image-url`);
               if (imgRes.ok) {
                 const imgData = await imgRes.json();
                 imageUrl = imgData.url;
               }
-            } catch (e) {
+            } catch {
               console.warn("Failed to fetch adoption image");
             }
           }
           
           const animal: AdoptionAnimal = {
-            id: adoption.adoption_id,
-            name: adoption.name,
-            type: adoption.animal_type,
-            breed: adoption.breed || "Mixed Breed",
-            age: adoption.age,
-            gender: adoption.gender || "Unknown",
+            id: String(adoption.adoption_id || ""),
+            name: String(adoption.name || ""),
+            type: String(adoption.animal_type || ""),
+            breed: String(adoption.breed || "Mixed Breed"),
+            age: String(adoption.age || ""),
+            gender: (adoption.gender as "Male" | "Female") || "Male",
             location: "Available for Adoption",
             imageUrl,
-            description: adoption.description || "",
-            vaccinated: adoption.vaccinated || false,
-            neutered: adoption.neutered || false,
+            description: String(adoption.description || ""),
+            vaccinated: Boolean(adoption.vaccinated),
+            neutered: Boolean(adoption.neutered),
           };
           
           return {
@@ -314,14 +316,15 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
         
         const results = await Promise.all(batchPromises);
         results.forEach(result => {
-          if (result.case_id) {
-            console.log(`[Dashboard] Mapping case_id ${result.case_id} to adoption ${result.adoption_id}`);
-            enrichedAdoptions[result.case_id] = result.animal;
+          const caseId = String(result.case_id || "");
+          if (caseId) {
+            console.log(`[Dashboard] Mapping case_id ${caseId} to adoption ${result.adoption_id}`);
+            enrichedAdoptions[caseId] = result.animal;
             setAdoptionStatusMap(prev => ({
               ...prev,
-              [result.case_id]: {
-                adoption_id: result.adoption_id,
-                status: result.status
+              [caseId]: {
+                adoption_id: String(result.adoption_id || ""),
+                status: String(result.status || "")
               }
             }));
           }
@@ -330,8 +333,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       
       console.log("[Dashboard] adoptedAnimals keys:", Object.keys(enrichedAdoptions));
       setAdoptedAnimals(enrichedAdoptions);
-    } catch (e) {
-      console.warn("Error fetching adoptions", e);
+    } catch {
+      console.warn("Error fetching adoptions");
     }
   }
 
@@ -345,17 +348,20 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       }
       const list = await res.json().catch(() => []);
       if (!Array.isArray(list)) return null;
-      const match = list.find((n: any) => String(n.email).toLowerCase() === String(email).toLowerCase());
-      if (match && (match.latitude !== undefined && match.longitude !== undefined)) {
-        const lat = Number(match.latitude);
-        const lng = Number(match.longitude);
+      const match = list.find((n: Record<string, unknown>) => {
+        const nObj = n as { email?: string };
+        return String(nObj.email).toLowerCase() === String(email).toLowerCase();
+      });
+      if (match && ((match as {latitude?: number; longitude?: number}).latitude !== undefined && (match as {latitude?: number; longitude?: number}).longitude !== undefined)) {
+        const lat = Number((match as {latitude: number}).latitude);
+        const lng = Number((match as {longitude: number}).longitude);
         if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
           setNgoCoords({ lat, lng });
           return { lat, lng };
         }
       }
-    } catch (e) {
-      console.warn("Error fetching ngo coords", e);
+    } catch {
+      console.warn("Error fetching ngo coords");
     }
     return null;
   }
@@ -401,7 +407,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       });
       return () => unsubscribe();
     }
-  }, [caseType]);
+  }, [caseType, fetchNearbyCases, fetchOngoingCases]);
 
   const saveNgoEmail = async () => {
     if (!editingNgoEmail) {
@@ -456,8 +462,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       } else {
         fetchOngoingCases(ngoEmail);
       }
-    } catch (err: any) {
-      console.error("Take action error", err);
+    } catch {
+      console.error("Take action error");
       toast.error("Network error while taking action");
     }
   };
@@ -515,7 +521,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
         return;
       }
 
-      const data = await res.json();
+      const data = await res.json() as { adoption_id?: string };
       toast.success(`Animal posted for adoption successfully!`);
       
       const caseId = selectedCaseForAdoption?.case_id || selectedCaseForAdoption?.id;
@@ -544,15 +550,15 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
         image_base64: ""
       });
       setSelectedCaseForAdoption(null);
-    } catch (err: any) {
-      console.error("Submit adoption error", err);
+    } catch {
+      console.error("Submit adoption error");
       toast.error("Network error while submitting adoption");
     } finally {
       setSubmittingAdoption(false);
     }
   };
 
-  const handleMarkAsAdopted = async (adoptionId: string, caseId: string) => {
+  const handleMarkAsAdopted = async (adoptionId: string) => {
     try {
       const res = await fetch(`${BACKEND_API}/adoptions/${adoptionId}`, {
         method: "PATCH",
@@ -572,8 +578,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       if (ngoEmail) {
         await fetchAdoptionsByNgoEmail(ngoEmail);
       }
-    } catch (err: any) {
-      console.error("Mark as adopted error", err);
+    } catch {
+      console.error("Mark as adopted error");
       toast.error("Network error while marking as adopted");
     }
   };
@@ -583,7 +589,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
       const id = caseItem.case_id || caseItem.id || Math.random().toString(36).slice(2, 9);
       const imageUrl =
         caseItem.image_presigned_url ||
-        (caseItem.s3_key ? s3UrlForKey(caseItem.s3_key) : caseItem.imageUrl || "");
+        (caseItem.s3_key ? s3UrlForKey(String(caseItem.s3_key)) : caseItem.imageUrl || "");
       
       const location =
         caseItem.location ||
@@ -602,7 +608,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
         longitude: caseItem.longitude,
         // keep original case_id so we can correlate when Take Action is clicked
         _raw: caseItem,
-      } as RescueCase & { _raw?: any };
+      } as RescueCase & { _raw?: Record<string, unknown> };
     })
     .filter((rescue) => {
       // Filter by case type (all, ongoing, completed, adopted)
@@ -644,10 +650,10 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
     try {
       const auth = getAuth();
       await signOut(auth);
-    } catch (e) {
+    } catch {
       // ignore
     } finally {
-      try { localStorage.removeItem("email"); localStorage.removeItem("ngo_id"); } catch (e) {}
+      try { localStorage.removeItem("email"); localStorage.removeItem("ngo_id"); } catch {}
       router.push('/login');
     }
   };
@@ -871,7 +877,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate?: (p: string)
                     <AdoptionCard
                       key={rescue.id}
                       animal={adoptedAnimal}
-                      onAdopt={() => handleMarkAsAdopted(adoptionInfo.adoption_id, rescue.id)}
+                      onAdopt={() => handleMarkAsAdopted(String(adoptionInfo.adoption_id))}
                       buttonText="Mark as Adopted"
                     />
                   );

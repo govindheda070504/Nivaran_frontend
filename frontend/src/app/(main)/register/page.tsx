@@ -35,7 +35,7 @@ export default function RegisterPage() {
 						Join Nivaran
 					</h1>
 					<p className="text-lg" style={{ color: "rgba(255, 255, 255, 0.9)" }}>
-						Choose how you'd like to make a difference
+						Choose how you&apos;d like to make a difference
 					</p>
 				</div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Shield, MapPin, Users, ArrowRight, Zap, CheckCircle } from "lucide-react";
+import { Heart, Shield, MapPin, Users, ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useRouter } from "next/navigation";

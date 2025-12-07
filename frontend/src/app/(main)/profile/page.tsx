@@ -15,19 +15,14 @@ import {
   Calendar,
   Shield,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { RescueCard, RescueCase } from "@/components/RescueCard";
 import { toast } from "sonner";
-
-interface ProfilePageProps {
-  onNavigate: (page: string) => void;
-}
 
 const THEME = {
   primary: "#19C2E6",
@@ -38,7 +33,7 @@ const THEME = {
 // color used for text displayed on white/light cards (dark for contrast)
 const CONTENT_TEXT = "#042f3a";
 
-export default function ProfilePage({ onNavigate }: ProfilePageProps) {
+export default function ProfilePage({}): React.ReactNode {
   const router = useRouter();
   const BACKEND_API = process.env.NEXT_PUBLIC_BACKEND_API!;
   const FIREBASE_CONFIG = {
@@ -59,7 +54,6 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
     bio: "",
     joinedDate: "",
   });
-  const [loading, setLoading] = useState(true);
 
   const stats = {
     rescues: 12,
@@ -83,7 +77,6 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
   // Fetch profile: prefer authenticated idToken, but if none and localStorage.email exists (dev),
   // send X-EMAIL header so backend in LOCAL_DEV mode can return profile.
   async function fetchProfileWithToken(idToken?: string, devEmail?: string, userId?: string) {
-    setLoading(true);
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (idToken) {
@@ -115,11 +108,9 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
         bio: p.bio || "",
         joinedDate: p.joinedDate || ""
       };
-    } catch (e) {
-      console.error("Error fetching profile", e);
+    } catch {
+      console.error("Error fetching profile");
       return null;
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -152,7 +143,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
           try { 
             localStorage.setItem("email", profile.email || u.email || "");
             localStorage.setItem("uid", u.uid);
-          } catch (e) {}
+          } catch {}
         } else {
           // fallback: populate from firebase user fields
           setProfileData({
@@ -164,25 +155,24 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps) {
             joinedDate: ""
           });
         }
-      } catch (e) {
-        console.error("Error loading profile", e);
+      } catch {
+        console.error("Error loading profile");
       }
     });
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSignOut = async () => {
     try {
       const auth = getAuth();
       await signOut(auth);
-    } catch (e) {
-      console.error("Sign out failed", e);
+    } catch {
+      console.error("Sign out failed");
     } finally {
       try {
         localStorage.removeItem("email");
         localStorage.removeItem("ngo_id");
-      } catch (e) {}
+      } catch {}
       router.push("/login");
     }
   };

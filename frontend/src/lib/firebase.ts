@@ -21,7 +21,7 @@ export const firebaseConfig = {
 // export const messaging = getMessaging(app);
 
 // Placeholder auth functions
-export const signInWithEmail = async (email: string, password: string) => {
+export const signInWithEmail = async (email: string, _password: string) => {
   // TODO: Implement Firebase email/password authentication
   console.log('Sign in with email:', email);
   return { user: { uid: 'mock-user-id', email } };
