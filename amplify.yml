@@ -1,13 +1,13 @@
 version: 1
 frontend:
-  appRoot: "frontend"
+  appRoot: "."
   framework: "Next.js - SSR"
 
   phases:
     preBuild:
       commands:
         - "echo 'Installing dependencies...' && pwd && ls -la"
-        - "npm ci"
+        - "if [ -f package-lock.json ]; then npm ci; else npm install; fi"
         - "echo 'Dependencies installed successfully'"
     build:
       commands:
